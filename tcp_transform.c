@@ -73,7 +73,7 @@ void send_file(FILE *fp, int sockfd){
 /**
  * Run client
  */
-void* run_client()
+void run_client()
 {
 
     sleep(10);
@@ -121,7 +121,7 @@ void* run_client()
 /**
  * Run server
  */
-void run_server()
+void* run_server()
 {
     //server
     char *ip = "127.0.0.1";
@@ -169,22 +169,98 @@ void run_server()
 /**
  * Function to compare between our generated file, and transformed file.
  */
-void compare_files(){
+void compare_files_by_checksum(){
     unsigned int client_checksum=checksum("client.txt");
     unsigned int server_checksum=checksum("server.txt");
 
     if(client_checksum== server_checksum)
     {
-        printf("Files transform successfully");
+        printf("Files are identical by checksum");
     }
     else
     {
-        printf("Files not transform successfully\n");
+        printf("Files are not identical by checksumn");
         printf("Client Checksum file: %u\n",client_checksum);
         printf("Server Checksum file: %u\n",server_checksum);
 
     }
 }
+
+/**
+ * Function to generate "client.txt" file.
+ * this file size is 100MB and full of random bits.
+ */
+void generate_random_file()
+{
+    FILE *fp= fopen("client.txt","wb");
+    if(fp==NULL)
+    {
+        perror("Error Opening the file");
+        exit(1);
+    }
+    //100MB of randomly generated file
+    long random_file_size = 100;
+    //Generate file
+    for (int i = 0; i < random_file_size; ++i) {
+        int num=(rand()%2);
+        fputc(num+48,fp);
+    }
+}
+
+
+
+void compare_files_by_chars()
+{
+    FILE* fp1= fopen("server.txt","rb");
+    FILE* fp2= fopen("client.txt","rb");
+
+    // fetching character of two file
+    // in two variable ch1 and ch2
+    char ch1 = getc(fp1);
+    char ch2 = getc(fp2);
+
+    // error keeps track of number of errors
+    // pos keeps track of position of errors
+    // line keeps track of error line
+    int error = 0, pos = 0, line = 1;
+
+    // iterate loop till end of file
+    while (ch1 != EOF || ch2 != EOF)
+    {
+        pos++;
+
+        // if both variable encounters new
+        // line then line variable is incremented
+        // and pos variable is set to 0
+        if (ch1 == '\n' && ch2 == '\n')
+        {
+            line++;
+            pos = 0;
+        }
+
+        // if fetched data is not equal then
+        // error is incremented
+        if (ch1 != ch2)
+        {
+            error++;
+        }
+
+        // fetching character until end of file
+        ch1 = getc(fp1);
+        ch2 = getc(fp2);
+    }
+
+    if (error == 0 && ch1 == EOF && ch2 == EOF)
+    {
+        printf("Identical by chars\n");
+    }
+    else
+    {
+        printf("Not Identical by chars\n");
+    }
+}
+
+
 
 
 /**
@@ -199,27 +275,14 @@ void compare_files(){
  * @return
  */
 int main(){
-    //File to open
-    FILE *fp= fopen("client.txt","wb");
-    if(fp==NULL)
-    {
-        perror("Error Opening the file");
-        exit(1);
-    }
-    //100MB of randomly generated file
-    long random_file_size = 100000000;
-    //Generate file
-    for (int i = 0; i < random_file_size; ++i) {
-        int num=(rand()%2);
-        fputc(num+48,fp);
-    }
-
+    //Generate random 100MB of bits into file.
+    generate_random_file();
+    //Open new thread.
     pthread_t ptid;
     // Creating a new thread and run client function from him.
-    pthread_create(&ptid, NULL, &run_client, NULL);
-
+    pthread_create(&ptid, NULL, &run_server, NULL);
     //run server after, the client should connect from other thread
-    run_server();
+    run_client();
     // Compare the two threads created
     if(pthread_equal(ptid, pthread_self()))
         printf("Threads are equal\n");
@@ -228,11 +291,11 @@ int main(){
 
     // Waiting for the created thread to terminate
     pthread_join(ptid, NULL);
-
     printf("This line will be printed"
            " after thread ends\n");
-
-    //After transforming the file from client to server -> we check if they are equal using our checksum function
-    compare_files();
+    //After transforming the file from client to server -> we check if they are equal using our checksum function and by chars
+    compare_files_by_chars();
+    compare_files_by_checksum();
+    //compare_files();
     pthread_exit(NULL);
 }
