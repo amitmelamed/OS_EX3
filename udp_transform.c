@@ -6,7 +6,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <pthread.h>
-
+#include <time.h>
 #include <unistd.h>
 
 
@@ -14,7 +14,17 @@
 #include <unistd.h>
 
 #define SIZE 1024
+void print_time()
+{
 
+    time_t rawtime;
+    struct tm * timeinfo;
+
+    time ( &rawtime );
+    timeinfo = localtime ( &rawtime );
+    printf ( "Time %s", asctime (timeinfo) );
+
+}
 void send_file_data(FILE* fp, int sockfd, struct sockaddr_in addr)
 {
     int n;
@@ -99,17 +109,18 @@ void* server_code() {
         exit(1);
     }
 
-    printf("[STARTING] UDP File Server started. \n");
+    //printf("[STARTING] UDP File Server started. \n");
     write_file(server_sockfd, client_addr);
 
-    printf("[SUCCESS] Data transfer complete.\n");
-    printf("[CLOSING] Closing the server.\n");
+    //printf("[SUCCESS] Data transfer complete.\n");
+    //printf("[CLOSING] Closing the server.\n");
 
     close(server_sockfd);
 }
 void  client_code()
 {
-    sleep(10);
+
+
     // Defining the IP and Port
     char *ip = "127.0.0.1";
     const int port = 8080;
@@ -142,7 +153,7 @@ void  client_code()
     send_file_data(fp, server_sockfd, server_addr);
 
     printf("[SUCCESS] Data transfer complete.\n");
-    printf("[CLOSING] Disconnecting from the server.\n");
+    //printf("[CLOSING] Disconnecting from the server.\n");
 
     close(server_sockfd);
 
@@ -258,6 +269,8 @@ void compare_files_by_checksum() {
 
 
 int main() {
+    printf("UDP|UDP/IPv6 Socket");
+    print_time();
     //Generate random 100MB of bits into file.
     generate_random_file();
     //Open new thread.
@@ -267,18 +280,19 @@ int main() {
     //run server after, the client should connect from other thread
     client_code();
     // Compare the two threads created
-    if(pthread_equal(ptid, pthread_self()))
-        printf("Threads are equal\n");
-    else
-        printf("Threads are not equal\n");
+//    if(pthread_equal(ptid, pthread_self()))
+//        printf("Threads are equal\n");
+//    else
+//        printf("Threads are not equal\n");
 
     // Waiting for the created thread to terminate
     pthread_join(ptid, NULL);
-    printf("This line will be printed"
-           " after thread ends\n");
+
     //After transforming the file from client to server -> we check if they are equal using our checksum function
 
     compare_files_by_chars();
     compare_files_by_checksum();
+    printf("UDP|UDP/IPv6 Socket");
+    print_time();
     pthread_exit(NULL);
 }
