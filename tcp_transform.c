@@ -9,8 +9,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define SIZE 1024
-
+// 100000000
+#define FILE_SIZE 100000000
+#define BUFFER_SIZE 1024
 
 void print_time() {
 
@@ -19,7 +20,7 @@ void print_time() {
 
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    printf("Time %s", asctime(timeinfo));
+    printf("time %s", asctime(timeinfo));
 
 }
 
@@ -47,17 +48,17 @@ unsigned int checksum(char *file_location) {
 void write_file(int sockfd, char *filename) {
     int n;
     FILE *fp;
-    char buffer[SIZE];
+    char buffer[BUFFER_SIZE];
 
     fp = fopen(filename, "w");
     while (1) {
-        n = recv(sockfd, buffer, SIZE, 0);
+        n = recv(sockfd, buffer, BUFFER_SIZE, 0);
         if (n <= 0) {
             break;
             return;
         }
         fprintf(fp, "%s", buffer);
-        bzero(buffer, SIZE);
+        bzero(buffer, BUFFER_SIZE);
     }
     return;
 }
@@ -70,14 +71,15 @@ void write_file(int sockfd, char *filename) {
  */
 void send_file(FILE *fp, int sockfd) {
     int n;
-    char data[SIZE] = {0};
+    char buffer[BUFFER_SIZE];
 
-    while (fgets(data, SIZE, fp) != NULL) {
-        if (send(sockfd, data, sizeof(data), 0) == -1) {
+    while (fgets(buffer, BUFFER_SIZE, fp) != NULL) 
+    {
+        if (send(sockfd, buffer, sizeof(buffer), 0) == -1) {
             perror("[-]Error in sending file.");
             exit(1);
         }
-        bzero(data, SIZE);
+        bzero(buffer, BUFFER_SIZE);
     }
 }
 
@@ -86,11 +88,13 @@ void send_file(FILE *fp, int sockfd) {
  */
 void run_client() {
 
-    //sleep(10);
+    sleep(1.5);
+    // Defining the IP and Port
     char *ip = "127.0.0.1";
-    int port = 8080;
-    int e;
+    const int port = 8080;
+    int check_error;
 
+    // Defining variables
     int sockfd;
     struct sockaddr_in server_addr;
     FILE *fp;
@@ -98,7 +102,7 @@ void run_client() {
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        perror("[-]Error in socket");
+        perror("[ERROR] socket error");
         exit(1);
     }
     //printf("[+]Server socket created successfully.\n");
@@ -107,8 +111,8 @@ void run_client() {
     server_addr.sin_port = port;
     server_addr.sin_addr.s_addr = inet_addr(ip);
 
-    e = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-    if (e == -1) {
+    check_error = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
+    if (check_error == -1) {
         perror("[-]Error in socket");
         exit(1);
     }
@@ -121,6 +125,8 @@ void run_client() {
     }
 
     send_file(fp, sockfd);
+    printf("[SUCCESS] Data transfer complete.\n");
+
     //printf("[+]File data sent successfully.\n");
 
     //printf("[+]Closing the connection.\n");
@@ -140,7 +146,7 @@ void *run_server() {
     int sockfd, new_sock;
     struct sockaddr_in server_addr, new_addr;
     socklen_t addr_size;
-    char buffer[SIZE];
+    char buffer[BUFFER_SIZE];
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
@@ -183,9 +189,9 @@ void compare_files_by_checksum() {
     unsigned int server_checksum = checksum("server.txt");
 
     if (client_checksum == server_checksum) {
-        printf("Files are identical by checksum");
+        printf("Files are identical by checksum\n");
     } else {
-        printf("Files are not identical by checksumn");
+        printf("Files are not identical by checksumn\n");
         printf("Client Checksum file: %u\n", client_checksum);
         printf("Server Checksum file: %u\n", server_checksum);
 
@@ -203,7 +209,7 @@ void generate_random_file() {
         exit(1);
     }
     //100MB of randomly generated file
-    long random_file_size = 100;
+    long random_file_size = FILE_SIZE;
     //Generate file
     for (int i = 0; i < random_file_size; ++i) {
         int num = (rand() % 2);
@@ -269,7 +275,7 @@ void compare_files_by_chars() {
  * @return
  */
 int main() {
-    printf(" TCP/IPv4 Socket| ");
+    printf("\n|TCP/IPv4 Socket| Starting ");
     print_time();
     //Generate random 100MB of bits into file.
     generate_random_file();
@@ -293,7 +299,7 @@ int main() {
     //After transforming the file from client to server -> we check if they are equal using our checksum function and by chars
     compare_files_by_chars();
     compare_files_by_checksum();
-    printf(" \nTCP/IPv4 Socket| ");
+    printf("\n|TCP/IPv4 Socket| Ending ");
     print_time();
     //compare_files();
     pthread_exit(NULL);

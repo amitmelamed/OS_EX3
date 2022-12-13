@@ -12,8 +12,9 @@
 
 
 #include <unistd.h>
-
-#define SIZE 1024
+// 100000000
+#define FILE_SIZE 100000
+#define BUFFER_SIZE 1024
 void print_time()
 {
 
@@ -22,40 +23,41 @@ void print_time()
 
     time ( &rawtime );
     timeinfo = localtime ( &rawtime );
-    printf ( "Time %s", asctime (timeinfo) );
+    printf ( "time %s", asctime (timeinfo) );
 
 }
 void send_file_data(FILE* fp, int sockfd, struct sockaddr_in addr)
 {
     int n;
-    char buffer[SIZE];
+    char buffer[BUFFER_SIZE];
 
     // Sending the data
-    while (fgets(buffer, SIZE, fp) != NULL)
+    while (fgets(buffer, BUFFER_SIZE, fp) != NULL)
     {
-        printf("[SENDING] Data: %s", buffer);
+        // printf("[SENDING] Data: %s", buffer);
 
-        n = sendto(sockfd, buffer, SIZE, 0, (struct sockaddr*)&addr, sizeof(addr));
+        n = sendto(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&addr, sizeof(addr));
         if (n == -1)
         {
             perror("[ERROR] sending data to the server.");
             exit(1);
         }
-        bzero(buffer, SIZE);
+        bzero(buffer, BUFFER_SIZE);
     }
 
     // Sending the 'END'
     strcpy(buffer, "END");
-    sendto(sockfd, buffer, SIZE, 0, (struct sockaddr*)&addr, sizeof(addr));
+    sendto(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&addr, sizeof(addr));
 
     fclose(fp);
 }
+
 void write_file(int sockfd, struct sockaddr_in addr)
 {
 
     char* filename = "server.txt";
     int n;
-    char buffer[SIZE];
+    char buffer[BUFFER_SIZE];
     socklen_t addr_size;
 
     // Creating a file.
@@ -65,17 +67,17 @@ void write_file(int sockfd, struct sockaddr_in addr)
     while (1)
     {
         addr_size = sizeof(addr);
-        n = recvfrom(sockfd, buffer, SIZE, 0, (struct sockaddr*)&addr, &addr_size);
+        n = recvfrom(sockfd, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&addr, &addr_size);
 
         if (strcmp(buffer, "END") == 0)
         {
             break;
         }
 
-        printf("[RECEVING] Data: %s", buffer);
+        // printf("[RECEVING] Data: %s", buffer);
         fprintf(fp, "%s", buffer);
         fputc(n,fp);
-        bzero(buffer, SIZE);
+        bzero(buffer, BUFFER_SIZE);
     }
 
     fclose(fp);
@@ -88,7 +90,7 @@ void* server_code() {
     // Defining variables
     int server_sockfd;
     struct sockaddr_in server_addr, client_addr;
-    char buffer[SIZE];
+    char buffer[BUFFER_SIZE];
     int e;
 
     // Creating a UDP socket
@@ -117,23 +119,25 @@ void* server_code() {
 
     close(server_sockfd);
 }
-void  client_code()
+void  run_client()
 {
 
-
+    sleep(1.5);
     // Defining the IP and Port
     char *ip = "127.0.0.1";
     const int port = 8080;
+    int check_error;
 
     // Defining variables
-    int server_sockfd;
+    int sockfd;
     struct sockaddr_in server_addr;
     char *filename = "client.txt";
-    FILE *fp = fopen(filename, "r");
+    FILE *fp;
+    // FILE *fp = fopen(filename, "r");
 
     // Creating a UDP socket
-    server_sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (server_sockfd < 0)
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0)
     {
         perror("[ERROR] socket error");
         exit(1);
@@ -142,7 +146,14 @@ void  client_code()
     server_addr.sin_port = port;
     server_addr.sin_addr.s_addr = inet_addr(ip);
 
+    check_error = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
+    if (check_error == -1) {
+        perror("[-]Error in socket");
+        exit(1);
+    }
+
     // Reading the text file
+    fp = fopen(filename, "r");
     if (fp == NULL)
     {
         perror("[ERROR] reading the file");
@@ -150,12 +161,12 @@ void  client_code()
     }
 
     // Sending the file data to the server
-    send_file_data(fp, server_sockfd, server_addr);
+    send_file_data(fp, sockfd, server_addr);
 
     printf("[SUCCESS] Data transfer complete.\n");
     //printf("[CLOSING] Disconnecting from the server.\n");
 
-    close(server_sockfd);
+    close(sockfd);
 
 }
 
@@ -174,7 +185,7 @@ void generate_random_file() {
         exit(1);
     }
     //100MB of randomly generated file
-    long random_file_size = 100;
+    long random_file_size = FILE_SIZE;
     //Generate file
     for (int i = 0; i < random_file_size; ++i) {
         int num = (rand() % 2);
@@ -269,7 +280,7 @@ void compare_files_by_checksum() {
 
 
 int main() {
-    printf("UDP|UDP/IPv6 Socket");
+    printf("\n|UDP/IPv6 Socket| Starting ");
     print_time();
     //Generate random 100MB of bits into file.
     generate_random_file();
@@ -278,7 +289,8 @@ int main() {
     // Creating a new thread and run client function from him.
     pthread_create(&ptid, NULL, &server_code, NULL);
     //run server after, the client should connect from other thread
-    client_code();
+    sleep(1);
+    run_client();
     // Compare the two threads created
 //    if(pthread_equal(ptid, pthread_self()))
 //        printf("Threads are equal\n");
@@ -292,7 +304,7 @@ int main() {
 
     compare_files_by_chars();
     compare_files_by_checksum();
-    printf("UDP|UDP/IPv6 Socket");
+    printf("|UDP/IPv6 Socket| Ending ");
     print_time();
     pthread_exit(NULL);
 }
