@@ -56,7 +56,7 @@ void generate_random_file()
     }
 
     // Write random 1s and 0s to the file
-    for (int i = 0; i < 100000000; i++) {
+    for (int i = 0; i < 10000000; i++) {
         int num = rand() % 2;
         fprintf(file, "%d", num);
     }
@@ -332,7 +332,9 @@ int main()
         printf("FORK FAILED");
     status = -1;
 
-    printf("[STARTING] UDS_DGRAM File Server started. \n");
+
+
+    printf("[STARTING] UDP File Server started. \n");
     write_file(server_sockfd, client_addr);
 
 
