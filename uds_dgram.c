@@ -259,7 +259,7 @@ void write_file(int sockfd, struct sockaddr_in addr)
 
 
 
-    printf("[RECEIVED] File received to server. Checksum: %d", calculateTotalCheckSum_2("client.txt"));
+    printf("[RECEIVED] File received to server. Checksum: %d", calculateTotalCheckSum_2("server.txt"));
 
 
     fclose(fp);
