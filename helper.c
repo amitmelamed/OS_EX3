@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <dirent.h>
+# include <time.h>
 
 // 100000000
 #define FILE_SIZE 100000000
@@ -17,7 +18,7 @@
 
 
 
-void print_time() 
+char* print_time() 
 {
 
     time_t rawtime;
@@ -26,7 +27,17 @@ void print_time()
     time(&rawtime);
     timeinfo = localtime(&rawtime);
     printf("time %s", asctime(timeinfo));
+    return asctime(timeinfo);
+}
 
+long ReturnTimeNs() {
+    struct timespec currTime;
+
+    if (clock_gettime(CLOCK_REALTIME, &currTime) == -1) {
+        perror("clock gettime");
+        return EXIT_FAILURE;
+    }
+    return currTime.tv_nsec;
 }
 
 /**
@@ -37,23 +48,11 @@ void generate_random_file()
 {
     // yes this is a test file abcdefghijklmnopqrstuvwxyz | head -c 100MB > bigfile.txt
     // found this command in: https://www.computernetworkingnotes.com/linux-tutorials/generate-or-create-a-large-text-file-in-linux.html
-    char str[512] = "yes this is a test file abcdefghijklmnopqrstuvwxyz | head -c 1MB > bigfile.txt";
+    char str[512] = "yes this is a test file abcdefghijklmnopqrstuvwxyz | head -c 100MB > bigfile.txt";
     if (system(str) != 0)
     {
         printf("ERROR creating file!\n");;
     }
-    // FILE *fp = fopen("client.txt", "wb");
-    // if (fp == NULL) {
-    //     perror("Error Opening the file");
-    //     exit(1);
-    // }
-    // //100MB of randomly generated file
-    // // long random_file_size = FILE_SIZE;
-    // //Generate file
-    // for (int i = 0; i < FILE_SIZE; ++i) {
-    //     int num = (rand() % 2);
-    //     fputc(num + 48, fp);
-    // }
 }
 
 
@@ -63,9 +62,9 @@ int calculateCheckSum(char *data)
     int length = strlen(data);
     for (int i = 0; i < length; i++)
         sum += data[i];
-    int checksum = sum;    //1's complement of sum
-    return checksum;
+    return sum;
 }
+
 
 int calculateTotalCheckSum(char * file)
 {    
@@ -100,9 +99,15 @@ int calculateTotalCheckSum(char * file)
 
 // int main()
 // {
-//     // generate_random_file();
-//     // printf("%d\n", calculateTotalCheckSum("bigfile.txt"));
-//     // printf("%d\n", calculateTotalCheckSum("bigfile.txt"));
+// //     // generate_random_file();
+// //     // printf("%d\n", calculateTotalCheckSum("bigfile.txt"));
+// //     // printf("%d\n", calculateTotalCheckSum("bigfile.txt"));
+//     // char* start = print_time();
+//     long start = ReturnTimeNs();
+//     sleep(10);
+//     long end = ReturnTimeNs();
+//     printf("%f\n", (double)((end - start) / 1000000000));
+//     // char* end = print_time();
 
 // }
 

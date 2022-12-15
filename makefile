@@ -1,33 +1,80 @@
 CC=gcc
 FLAGS= -Wall -g
 
-all: send recv dgramS dgramC
+# all: dgram stream tcp udp pipe mmap shared
+all: dgram stream pipe
 
-dgramS.o: dgramS.c
-	$(CC) $(FLAGS) -c dgramS.c
+run: all
+	./dgram
+	./stream
+	./pipe
 
-dgramS: dgramS.o
-	$(CC) $(FLAGS) -o dgramS dgramS.o
 
-dgramC.o: dgramC.c
-	$(CC) $(FLAGS) -c dgramC.c
+# UDS-Dgram socket
+uds_dgram.o: uds_dgram.c
+	$(CC) $(FLAGS) -c uds_dgram.c
 
-dgramC: dgramC.o
-	$(CC) $(FLAGS) -o dgramC dgramC.o
+dgram: uds_dgram.o
+	$(CC) $(FLAGS) -o dgram uds_dgram.o
+# _______________________________________
 
-SendData.o: SendData.c
-	$(CC) $(FLAGS) -c SendData.c -lpthread
 
-send: SendData.o
-	$(CC) $(FLAGS) -o send SendData.o 
+# UDS-Stream socket
+uds_stream.o: uds_stream.c
+	$(CC) $(FLAGS) -c uds_stream.c
 
-recvData.o: recvData.c
-	$(CC) $(FLAGS) -c recvData.c
+stream: uds_stream.o
+	$(CC) $(FLAGS) -o stream uds_stream.o
+# _______________________________________
 
-recv: recvData.o
-	$(CC) $(FLAGS) -o recv recvData.o 
+
+# TCP/IPv4 socket
+tcp.o: tcp.c
+	$(CC) $(FLAGS) -c tcp.c
+
+tcp: tcp.o
+	$(CC) $(FLAGS) -o tcp tcp.o
+# _______________________________________
+
+
+# UDP/IPv6 socket
+udp.o: udp.c
+	$(CC) $(FLAGS) -c udp.c
+
+udp: udp.o
+	$(CC) $(FLAGS) -o udp udp.o
+# _______________________________________
+
+
+# MMAP
+mmap.o: mmap.c
+	$(CC) $(FLAGS) -c mmap.c
+
+mmap: mmap.o
+	$(CC) $(FLAGS) -o mmap mmap.o
+# _______________________________________
+
+
+# PIPE
+pipe.o: pipe.c
+	$(CC) $(FLAGS) -c pipe.c
+
+pipe: pipe.o
+	$(CC) $(FLAGS) -o pipe pipe.o
+# _______________________________________
+
+
+# Shared memory between threads
+shared_memory.o: shared_memory.c
+	$(CC) $(FLAGS) -c shared_memory.c
+
+shared: shared_memory.o
+	$(CC) $(FLAGS) -o shared_memory shared_memory.o
+# _______________________________________
+
+
 
 .PHONY: clean all 
 
 clean:
-	rm -f *.o *.a *.so send recv dgramS dgramC
+	rm -f *.o *.a *.so  bigfile.txt server.txt dgram stream tcp udp pipe mmap shared

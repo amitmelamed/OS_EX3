@@ -21,7 +21,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "helper.c"
-#define SIZE 256
+#define SIZE 64
 
 
 // int calculateTotalCheckSum(char * file);
@@ -180,7 +180,7 @@ void send_file_data(FILE* fp, int sockfd, struct sockaddr_in addr)
  */
 void client_run()
 {
-    sleep(2);
+    sleep(3);
     // Defining the IP and Port
     char *ip = "127.0.0.1";
     const int port = 8080;
@@ -213,8 +213,8 @@ void client_run()
     // Sending the file data to the server
     send_file_data(fp, server_sockfd, server_addr);
 
-    printf("[SUCCESS] Data transfer complete.\n");
-    printf("[CLOSING] Disconnecting from the server.\n");
+    printf("[SEND] Data transfer complete.\n");
+    // printf("[CLOSING] Disconnecting from the server.\n");
 
     close(server_sockfd);
 
@@ -231,7 +231,7 @@ void write_file(int sockfd, struct sockaddr_in addr)
 {
 
     int data=0;
-    char* filename = ".txt";
+    char* filename = "server.txt";
     int n;
     char buffer[SIZE];
     socklen_t addr_size;
@@ -260,7 +260,7 @@ void write_file(int sockfd, struct sockaddr_in addr)
 
 
 
-    printf("[RECEIVED] File received to server. \nChecksum: %d", calculateTotalCheckSum("server.txt"));
+    // printf("[RECEIVED] File received to server. \nCHECKSUM = %d\n", calculateTotalCheckSum("server.txt"));
 
 
     fclose(fp);
@@ -272,10 +272,16 @@ void write_file(int sockfd, struct sockaddr_in addr)
  */
 int main()
 {
+    long before = 0;
+    long after = 0;
 
     generate_random_file();
-    printf("[GENERATE] Random file have been creasted. \nCHECKSUM %d", calculateTotalCheckSum("bigfile.txt"));
+    before = calculateTotalCheckSum("bigfile.txt");
+    printf("\nRandom file have been created. \n1st CHECKSUM = %ld\n", before);
+    printf("________________ START UDP DGRAM ________________\n");
+    printf("Starting ");
     print_time();
+    long start = ReturnTimeNs();
     // Defining the IP and Port
     char* ip = "127.0.0.1";
     const int port = 8080;
@@ -283,12 +289,8 @@ int main()
     // Defining variables
     int server_sockfd;
     struct sockaddr_in server_addr, client_addr;
-    char buffer[SIZE];
+    // char buffer[SIZE];
     int e;
-
-
-
-
 
     // Creating a UDP socket
     server_sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -301,9 +303,6 @@ int main()
     server_addr.sin_port = port;
     server_addr.sin_addr.s_addr = inet_addr(ip);
 
-
-
-
     e = bind(server_sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
     if (e < 0)
     {
@@ -311,44 +310,39 @@ int main()
         exit(1);
     }
 
-
-
     /**
      * Create new process and call run client from it
      */
-    int status;
+    // int status;
     pid_t pid;
-
-
 
     pid = fork ();
     if (pid == 0)
     {
         /* This is the child process.  Execute the shell command. */
         client_run();
-
     }
-    else if (pid < 0)
+    else if (pid < 0) 
+    {
         /* The fork failed.  Report failure.  */
         printf("FORK FAILED");
-    status = -1;
+    }
+    // status = -1;
 
-
-
-    printf("[STARTING] UDP File Server started. \n");
     write_file(server_sockfd, client_addr);
+    after = calculateTotalCheckSum("server.txt");
 
-
-
-
-
-
-
+    printf("[RECEIVED] File received to server. \n2nd CHECKSUM = %ld\n", after);
     printf("[SUCCESS] Data transfer complete.\n");
-    printf("[CLOSING] Closing the server.\n");
+    printf("Difference between checksum is -> %ld\n", (long)(abs(after - before)));
+    printf("Ending ");
     print_time();
+    printf("________________ END UDP DGRAM __________________\n\n");
 
+    // long start = ReturnTimeNs();
+    // sleep(10);
+    long end = ReturnTimeNs();
+    printf("%lf\n", (double)((end - start) / 1000000000.0));
     close(server_sockfd);
-
     return 0;
 }
