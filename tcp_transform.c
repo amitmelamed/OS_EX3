@@ -1,6 +1,8 @@
-//
-// Created by amitmelamed on 12/8/22.
-//
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -8,12 +10,35 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <errno.h>
+#include <ctype.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#define SIZE 1024
 
-// 100000000
-#define FILE_SIZE 100000000
-#define BUFFER_SIZE 1024
+void send_file(FILE *fp, int sockfd){
+    int n;
+    char data[SIZE] = {0};
 
-void print_time() {
+    while(fgets(data, SIZE, fp) != NULL) {
+        if (send(sockfd, data, sizeof(data), 0) == -1) {
+            perror("[-]Error in sending file.");
+            exit(1);
+        }
+        bzero(data, SIZE);
+    }
+}
+int calculateTotalCheckSum(char * file);
+int calculateCheckSum(char *data);
+
+void print_time()
+{
 
     time_t rawtime;
     struct tm *timeinfo;
@@ -25,98 +50,143 @@ void print_time() {
 }
 
 /**
- * Check Sum Function.
- * Input-> String of file location.
- * Output-> checksum of file.
- * @param file_location
- * @return
+ * Function to generate "client.txt" file.
+ * this file size is 100MB and full of random bits.
  */
-unsigned int checksum(char *file_location) {
-    FILE *fp = fopen(file_location, "rb");
-    unsigned char checksum = 0;
-    while (!feof(fp) && !ferror(fp)) {
-        checksum ^= fgetc(fp);
+void generate_random_file()
+{
+
+    // Seed the random number generator with the current time
+    srand(time(NULL));
+
+    // Open the file for writing
+    FILE* file = fopen("client.txt", "w");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+        return;
     }
-    fclose(fp);
+
+    // Write random 1s and 0s to the file
+    for (int i = 0; i < 1000000; i++) {
+        int num = rand() % 2;
+        fprintf(file, "%d", num);
+    }
+
+    // Close the file
+    fclose(file);
+    printf("[GENERATE] Random file have been creasted. CHECKSUM %d", calculateTotalCheckSum("client.txt"));
+}
+
+
+int calculateCheckSum(char *data)
+{
+    int sum = 0;
+    int length = strlen(data);
+    for (int i = 0; i < length; i++)
+        sum += data[i];
+    int checksum = sum;    //1's complement of sum
     return checksum;
 }
 
-/**
- * Function to receive our file to socket
- * @param sockfd
- */
-void write_file(int sockfd, char *filename) {
-    int n;
-    FILE *fp;
-    char buffer[BUFFER_SIZE];
-
-    fp = fopen(filename, "w");
-    while (1) {
-        n = recv(sockfd, buffer, BUFFER_SIZE, 0);
-        if (n <= 0) {
-            break;
-            return;
-        }
-        fprintf(fp, "%s", buffer);
-        bzero(buffer, BUFFER_SIZE);
-    }
-    return;
-}
-
-
-/**
- * Function to send our file in socket.
- * @param fp
- * @param sockfd
- */
-void send_file(FILE *fp, int sockfd) {
-    int n;
-    char buffer[BUFFER_SIZE];
-
-    while (fgets(buffer, BUFFER_SIZE, fp) != NULL) 
+int calculateTotalCheckSum(char * file)
+{
+    int first = open(file, O_RDONLY);
+    if(first == -1)
     {
-        if (send(sockfd, buffer, sizeof(buffer), 0) == -1) {
-            perror("[-]Error in sending file.");
-            exit(1);
-        }
-        bzero(buffer, BUFFER_SIZE);
+        perror("error opening first file: ");
+        return -1;
     }
+    char data[1000];
+    int bytesRead, sum = 0;
+    while(1)
+    {
+        bzero(data, 1000);
+        //reading the data and checking validity
+        bytesRead = read(first,data,1000);
+        if(bytesRead < 0)
+        {
+            close(first);
+            perror("Error while reading: ");
+            break;
+        }
+        else if(bytesRead == 0)
+        {
+            break;
+        }
+        sum += calculateCheckSum(data);
+    }
+    close(first);
+    return sum;
 }
 
+
+
+int calculateTotalCheckSum_2(char * file)
+{
+    int first = open(file, O_RDONLY);
+    if(first == -1)
+    {
+        perror("error opening first file: ");
+        return -1;
+    }
+    char data[1000];
+    int bytesRead, sum = 0;
+    while(1)
+    {
+        bzero(data, 1000);
+        //reading the data and checking validity
+        bytesRead = read(first,data,1000);
+        if(bytesRead < 0)
+        {
+            close(first);
+            perror("Error while reading: ");
+            break;
+        }
+        else if(bytesRead == 0)
+        {
+            break;
+        }
+        sum += calculateCheckSum(data);
+    }
+    close(first);
+    return sum;
+}
+
+
+
+
 /**
- * Run client
+ * Function to run client from the new procces
  */
-void run_client() {
-
-    sleep(1.5);
-    // Defining the IP and Port
+void client_run()
+{
     char *ip = "127.0.0.1";
-    const int port = 8080;
-    int check_error;
+    int port = 8080;
+    int e;
 
-    // Defining variables
+    generate_random_file();
     int sockfd;
     struct sockaddr_in server_addr;
     FILE *fp;
     char *filename = "client.txt";
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("[ERROR] socket error");
+    if(sockfd < 0) {
+        perror("[-]Error in socket");
         exit(1);
     }
-    //printf("[+]Server socket created successfully.\n");
+    printf("[+]Server socket created successfully.\n");
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = port;
     server_addr.sin_addr.s_addr = inet_addr(ip);
 
-    check_error = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-    if (check_error == -1) {
+    e = connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+    if(e == -1) {
         perror("[-]Error in socket");
         exit(1);
     }
-    //printf("[+]Connected to Server.\n");
+    printf("[+]Connected to Server.\n");
 
     fp = fopen(filename, "r");
     if (fp == NULL) {
@@ -125,20 +195,49 @@ void run_client() {
     }
 
     send_file(fp, sockfd);
-    printf("[SUCCESS] Data transfer complete.\n");
+    printf("[+]File data sent successfully.\n");
 
-    //printf("[+]File data sent successfully.\n");
-
-    //printf("[+]Closing the connection.\n");
+    printf("[+]Closing the connection.\n");
     close(sockfd);
+
+    exit(0);
 
 }
 
 /**
- * Run server
+ * Server get the file and write it to server.txt
+ * @param sockfd
+ * @param addr
  */
-void *run_server() {
-    //server
+void write_file(int sockfd){
+    int n;
+    FILE *fp;
+    char *filename = "server.txt";
+    char buffer[SIZE];
+
+    fp = fopen(filename, "w");
+    while (1) {
+        n = recv(sockfd, buffer, SIZE, 0);
+        if (n <= 0){
+            break;
+            return;
+        }
+        fprintf(fp, "%s", buffer);
+        bzero(buffer, SIZE);
+    }
+    printf("[GENERATE]  File have been recived for server. CHECKSUM %d", calculateTotalCheckSum("server.txt"));
+
+    return;
+}
+
+/**
+ * Define the server , then open new procces with client.
+ * @return
+ */
+int main()
+{
+    printf("Sending file using TCP/IPv4");
+    print_time();
     char *ip = "127.0.0.1";
     int port = 8080;
     int e;
@@ -146,161 +245,67 @@ void *run_server() {
     int sockfd, new_sock;
     struct sockaddr_in server_addr, new_addr;
     socklen_t addr_size;
-    char buffer[BUFFER_SIZE];
+    char buffer[SIZE];
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
+    if(sockfd < 0) {
         perror("[-]Error in socket");
         exit(1);
     }
-    // printf("[+]Server socket created successfully.\n");
+    printf("[+]Server socket created successfully.\n");
+
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = port;
     server_addr.sin_addr.s_addr = inet_addr(ip);
 
-    e = bind(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-    if (e < 0) {
+
+
+
+
+    e = bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+    if(e < 0) {
         perror("[-]Error in bind");
         exit(1);
     }
-    //printf("[+]Binding successfull.\n");
 
-    if (listen(sockfd, 10) == 0) {
-        //printf("[+]Listening....\n");
-    } else {
+    printf("[+]Binding successfull.\n");
+
+    if(listen(sockfd, 10) == 0){
+        printf("[+]Listening....\n");
+    }else{
         perror("[-]Error in listening");
         exit(1);
     }
 
+
+    /**
+     * Create new process and call run client from it
+     */
+    int status;
+    pid_t pid;
+
+
+
+    pid = fork ();
+    if (pid == 0)
+    {
+        /* This is the child process.  Execute the shell command. */
+        client_run();
+
+    }
+    else if (pid < 0)
+        /* The fork failed.  Report failure.  */
+        printf("FORK FAILED");
+    status = -1;
+
+
     addr_size = sizeof(new_addr);
-    new_sock = accept(sockfd, (struct sockaddr *) &new_addr, &addr_size);
-    write_file(new_sock, "server.txt");
-    //printf("[+]Data written in the file successfully.\n");
-
-
-}
-
-/**
- * Function to compare between our generated file, and transformed file.
- */
-void compare_files_by_checksum() {
-    unsigned int client_checksum = checksum("client.txt");
-    unsigned int server_checksum = checksum("server.txt");
-
-    if (client_checksum == server_checksum) {
-        printf("Files are identical by checksum\n");
-    } else {
-        printf("Files are not identical by checksumn\n");
-        printf("Client Checksum file: %u\n", client_checksum);
-        printf("Server Checksum file: %u\n", server_checksum);
-
-    }
-}
-
-/**
- * Function to generate "client.txt" file.
- * this file size is 100MB and full of random bits.
- */
-void generate_random_file() {
-    FILE *fp = fopen("client.txt", "wb");
-    if (fp == NULL) {
-        perror("Error Opening the file");
-        exit(1);
-    }
-    //100MB of randomly generated file
-    long random_file_size = FILE_SIZE;
-    //Generate file
-    for (int i = 0; i < random_file_size; ++i) {
-        int num = (rand() % 2);
-        fputc(num + 48, fp);
-    }
-}
-
-
-void compare_files_by_chars() {
-    FILE *fp1 = fopen("server.txt", "rb");
-    FILE *fp2 = fopen("client.txt", "rb");
-
-    // fetching character of two file
-    // in two variable ch1 and ch2
-    char ch1 = getc(fp1);
-    char ch2 = getc(fp2);
-
-    // error keeps track of number of errors
-    // pos keeps track of position of errors
-    // line keeps track of error line
-    int error = 0, pos = 0, line = 1;
-
-    // iterate loop till end of file
-    while (ch1 != EOF || ch2 != EOF) {
-        pos++;
-
-        // if both variable encounters new
-        // line then line variable is incremented
-        // and pos variable is set to 0
-        if (ch1 == '\n' && ch2 == '\n') {
-            line++;
-            pos = 0;
-        }
-
-        // if fetched data is not equal then
-        // error is incremented
-        if (ch1 != ch2) {
-            error++;
-        }
-
-        // fetching character until end of file
-        ch1 = getc(fp1);
-        ch2 = getc(fp2);
-    }
-
-    if (error == 0 && ch1 == EOF && ch2 == EOF) {
-        printf("Identical by chars\n");
-    } else {
-        printf("Not Identical by chars\n");
-    }
-}
-
-
-/**
- * Our main algorithm:
- * 1.Generate random 100MB of bits into file.
- * 2.Open new thread.
- * 3.Create client from new thread.
- * 4.Create Server from main thread.
- * 5.Transform generated 100MB file from client to server.
- * 6.Terminate our created new thread.
- * 7.Compare original file and transformed file using checksum.
- * @return
- */
-int main() {
-    printf("\n|TCP/IPv4 Socket| Starting ");
+    new_sock = accept(sockfd, (struct sockaddr*)&new_addr, &addr_size);
+    write_file(new_sock);
+    printf("[+]Data written in the file successfully.\n");
     print_time();
-    //Generate random 100MB of bits into file.
-    generate_random_file();
-    //Open new thread.
-    pthread_t ptid;
-    // Creating a new thread and run client function from him.
-    pthread_create(&ptid, NULL, &run_server, NULL);
-    //run server after, the client should connect from other thread
-    run_client();
-    // Compare the two threads created
-    if (pthread_equal(ptid, pthread_self())) {
-        //printf("Threads are equal\n");
-    } else {
-        //printf("Threads are not equal\n");
-    }
 
-    // Waiting for the created thread to terminate
-    pthread_join(ptid, NULL);
-//    printf("This line will be printed"
-//           " after thread ends\n");
-    //After transforming the file from client to server -> we check if they are equal using our checksum function and by chars
-    compare_files_by_chars();
-    compare_files_by_checksum();
-    printf("\n|TCP/IPv4 Socket| Ending ");
-    print_time();
-    //compare_files();
-    pthread_exit(NULL);
+
+    return 0;
 }
