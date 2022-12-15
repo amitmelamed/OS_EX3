@@ -20,126 +20,127 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#define SIZE 1024
+#include "helper.c"
+#define SIZE 256
 
 
-int calculateTotalCheckSum(char * file);
-int calculateCheckSum(char *data);
+// int calculateTotalCheckSum(char * file);
+// int calculateCheckSum(char *data);
 
-void print_time()
-{
+// void print_time()
+// {
 
-    time_t rawtime;
-    struct tm *timeinfo;
+//     time_t rawtime;
+//     struct tm *timeinfo;
 
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    printf("time %s", asctime(timeinfo));
+//     time(&rawtime);
+//     timeinfo = localtime(&rawtime);
+//     printf("time %s", asctime(timeinfo));
 
-}
+// }
 
-/**
- * Function to generate "client.txt" file.
- * this file size is 100MB and full of random bits.
- */
-void generate_random_file()
-{
+// /**
+//  * Function to generate "client.txt" file.
+//  * this file size is 100MB and full of random bits.
+//  */
+// void generate_random_file()
+// {
 
-    // Seed the random number generator with the current time
-    srand(time(NULL));
+//     // Seed the random number generator with the current time
+//     srand(time(NULL));
 
-    // Open the file for writing
-    FILE* file = fopen("client.txt", "w");
-    if (file == NULL) {
-        printf("Error opening file!\n");
-        return;
-    }
+//     // Open the file for writing
+//     FILE* file = fopen("client.txt", "w");
+//     if (file == NULL) {
+//         printf("Error opening file!\n");
+//         return;
+//     }
 
-    // Write random 1s and 0s to the file
-    for (int i = 0; i < 10000000; i++) {
-        int num = rand() % 2;
-        fprintf(file, "%d", num);
-    }
+//     // Write random 1s and 0s to the file
+//     for (int i = 0; i < 10000000; i++) {
+//         int num = rand() % 2;
+//         fprintf(file, "%d", num);
+//     }
 
-    // Close the file
-    fclose(file);
-    printf("[GENERATE] Random file have been creasted. CHECKSUM %d", calculateTotalCheckSum("client.txt"));
-}
-
-
-int calculateCheckSum(char *data)
-{
-    int sum = 0;
-    int length = strlen(data);
-    for (int i = 0; i < length; i++)
-        sum += data[i];
-    int checksum = sum;    //1's complement of sum
-    return checksum;
-}
-
-int calculateTotalCheckSum(char * file)
-{
-    int first = open(file, O_RDONLY);
-    if(first == -1)
-    {
-        perror("error opening first file: ");
-        return -1;
-    }
-    char data[1000];
-    int bytesRead, sum = 0;
-    while(1)
-    {
-        bzero(data, 1000);
-        //reading the data and checking validity
-        bytesRead = read(first,data,1000);
-        if(bytesRead < 0)
-        {
-            close(first);
-            perror("Error while reading: ");
-            break;
-        }
-        else if(bytesRead == 0)
-        {
-            break;
-        }
-        sum += calculateCheckSum(data);
-    }
-    close(first);
-    return sum;
-}
+//     // Close the file
+//     fclose(file);
+//     printf("[GENERATE] Random file have been creasted. CHECKSUM %d", calculateTotalCheckSum("client.txt"));
+// }
 
 
+// int calculateCheckSum(char *data)
+// {
+//     int sum = 0;
+//     int length = strlen(data);
+//     for (int i = 0; i < length; i++)
+//         sum += data[i];
+//     int checksum = sum;    //1's complement of sum
+//     return checksum;
+// }
 
-int calculateTotalCheckSum_2(char * file)
-{
-    int first = open(file, O_RDONLY);
-    if(first == -1)
-    {
-        perror("error opening first file: ");
-        return -1;
-    }
-    char data[1000];
-    int bytesRead, sum = 0;
-    while(1)
-    {
-        bzero(data, 1000);
-        //reading the data and checking validity
-        bytesRead = read(first,data,1000);
-        if(bytesRead < 0)
-        {
-            close(first);
-            perror("Error while reading: ");
-            break;
-        }
-        else if(bytesRead == 0)
-        {
-            break;
-        }
-        sum += calculateCheckSum(data);
-    }
-    close(first);
-    return sum;
-}
+// int calculateTotalCheckSum(char * file)
+// {
+//     int first = open(file, O_RDONLY);
+//     if(first == -1)
+//     {
+//         perror("error opening first file: ");
+//         return -1;
+//     }
+//     char data[1000];
+//     int bytesRead, sum = 0;
+//     while(1)
+//     {
+//         bzero(data, 1000);
+//         //reading the data and checking validity
+//         bytesRead = read(first,data,1000);
+//         if(bytesRead < 0)
+//         {
+//             close(first);
+//             perror("Error while reading: ");
+//             break;
+//         }
+//         else if(bytesRead == 0)
+//         {
+//             break;
+//         }
+//         sum += calculateCheckSum(data);
+//     }
+//     close(first);
+//     return sum;
+// }
+
+
+
+// int calculateTotalCheckSum_2(char * file)
+// {
+//     int first = open(file, O_RDONLY);
+//     if(first == -1)
+//     {
+//         perror("error opening first file: ");
+//         return -1;
+//     }
+//     char data[1000];
+//     int bytesRead, sum = 0;
+//     while(1)
+//     {
+//         bzero(data, 1000);
+//         //reading the data and checking validity
+//         bytesRead = read(first,data,1000);
+//         if(bytesRead < 0)
+//         {
+//             close(first);
+//             perror("Error while reading: ");
+//             break;
+//         }
+//         else if(bytesRead == 0)
+//         {
+//             break;
+//         }
+//         sum += calculateCheckSum(data);
+//     }
+//     close(first);
+//     return sum;
+// }
 
 
 /**
@@ -187,8 +188,8 @@ void client_run()
     // Defining variables
     int server_sockfd;
     struct sockaddr_in server_addr;
-    generate_random_file();
-    char *filename = "client.txt";
+    // generate_random_file();
+    char *filename = "bigfile.txt";
     FILE *fp = fopen(filename, "r");
 
     // Creating a UDP socket
@@ -230,7 +231,7 @@ void write_file(int sockfd, struct sockaddr_in addr)
 {
 
     int data=0;
-    char* filename = "server.txt";
+    char* filename = ".txt";
     int n;
     char buffer[SIZE];
     socklen_t addr_size;
@@ -259,7 +260,7 @@ void write_file(int sockfd, struct sockaddr_in addr)
 
 
 
-    printf("[RECEIVED] File received to server. Checksum: %d", calculateTotalCheckSum_2("server.txt"));
+    printf("[RECEIVED] File received to server. \nChecksum: %d", calculateTotalCheckSum("server.txt"));
 
 
     fclose(fp);
@@ -272,8 +273,8 @@ void write_file(int sockfd, struct sockaddr_in addr)
 int main()
 {
 
-
-
+    generate_random_file();
+    printf("[GENERATE] Random file have been creasted. \nCHECKSUM %d", calculateTotalCheckSum("bigfile.txt"));
     print_time();
     // Defining the IP and Port
     char* ip = "127.0.0.1";

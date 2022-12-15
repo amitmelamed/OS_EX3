@@ -98,13 +98,13 @@ int calculateTotalCheckSum(char * file)
     return sum;
 }
 
-int main()
-{
-    // generate_random_file();
-    // printf("%d\n", calculateTotalCheckSum("bigfile.txt"));
-    // printf("%d\n", calculateTotalCheckSum("bigfile.txt"));
+// int main()
+// {
+//     // generate_random_file();
+//     // printf("%d\n", calculateTotalCheckSum("bigfile.txt"));
+//     // printf("%d\n", calculateTotalCheckSum("bigfile.txt"));
 
-}
+// }
 
 
 
