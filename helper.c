@@ -30,15 +30,6 @@ char* print_time()
     return asctime(timeinfo);
 }
 
-long ReturnTimeNs() {
-    struct timespec currTime;
-
-    if (clock_gettime(CLOCK_REALTIME, &currTime) == -1) {
-        perror("clock gettime");
-        return EXIT_FAILURE;
-    }
-    return currTime.tv_nsec;
-}
 
 /**
  * Function to generate "client.txt" file.

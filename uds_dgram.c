@@ -24,125 +24,6 @@
 #define SIZE 64
 
 
-// int calculateTotalCheckSum(char * file);
-// int calculateCheckSum(char *data);
-
-// void print_time()
-// {
-
-//     time_t rawtime;
-//     struct tm *timeinfo;
-
-//     time(&rawtime);
-//     timeinfo = localtime(&rawtime);
-//     printf("time %s", asctime(timeinfo));
-
-// }
-
-// /**
-//  * Function to generate "client.txt" file.
-//  * this file size is 100MB and full of random bits.
-//  */
-// void generate_random_file()
-// {
-
-//     // Seed the random number generator with the current time
-//     srand(time(NULL));
-
-//     // Open the file for writing
-//     FILE* file = fopen("client.txt", "w");
-//     if (file == NULL) {
-//         printf("Error opening file!\n");
-//         return;
-//     }
-
-//     // Write random 1s and 0s to the file
-//     for (int i = 0; i < 10000000; i++) {
-//         int num = rand() % 2;
-//         fprintf(file, "%d", num);
-//     }
-
-//     // Close the file
-//     fclose(file);
-//     printf("[GENERATE] Random file have been creasted. CHECKSUM %d", calculateTotalCheckSum("client.txt"));
-// }
-
-
-// int calculateCheckSum(char *data)
-// {
-//     int sum = 0;
-//     int length = strlen(data);
-//     for (int i = 0; i < length; i++)
-//         sum += data[i];
-//     int checksum = sum;    //1's complement of sum
-//     return checksum;
-// }
-
-// int calculateTotalCheckSum(char * file)
-// {
-//     int first = open(file, O_RDONLY);
-//     if(first == -1)
-//     {
-//         perror("error opening first file: ");
-//         return -1;
-//     }
-//     char data[1000];
-//     int bytesRead, sum = 0;
-//     while(1)
-//     {
-//         bzero(data, 1000);
-//         //reading the data and checking validity
-//         bytesRead = read(first,data,1000);
-//         if(bytesRead < 0)
-//         {
-//             close(first);
-//             perror("Error while reading: ");
-//             break;
-//         }
-//         else if(bytesRead == 0)
-//         {
-//             break;
-//         }
-//         sum += calculateCheckSum(data);
-//     }
-//     close(first);
-//     return sum;
-// }
-
-
-
-// int calculateTotalCheckSum_2(char * file)
-// {
-//     int first = open(file, O_RDONLY);
-//     if(first == -1)
-//     {
-//         perror("error opening first file: ");
-//         return -1;
-//     }
-//     char data[1000];
-//     int bytesRead, sum = 0;
-//     while(1)
-//     {
-//         bzero(data, 1000);
-//         //reading the data and checking validity
-//         bytesRead = read(first,data,1000);
-//         if(bytesRead < 0)
-//         {
-//             close(first);
-//             perror("Error while reading: ");
-//             break;
-//         }
-//         else if(bytesRead == 0)
-//         {
-//             break;
-//         }
-//         sum += calculateCheckSum(data);
-//     }
-//     close(first);
-//     return sum;
-// }
-
-
 /**
  * Send file file from client to server
  * @param fp
@@ -213,7 +94,7 @@ void client_run()
     // Sending the file data to the server
     send_file_data(fp, server_sockfd, server_addr);
 
-    printf("[SEND] Data transfer complete.\n");
+    // printf("[SEND] Data transfer complete.\n");
     // printf("[CLOSING] Disconnecting from the server.\n");
 
     close(server_sockfd);
@@ -229,8 +110,7 @@ void client_run()
  */
 void write_file(int sockfd, struct sockaddr_in addr)
 {
-
-    int data=0;
+    int data = 0;
     char* filename = "server.txt";
     int n;
     char buffer[SIZE];
@@ -256,13 +136,6 @@ void write_file(int sockfd, struct sockaddr_in addr)
         fprintf(fp, "%s", buffer);
         bzero(buffer, SIZE);
     }
-
-
-
-
-    // printf("[RECEIVED] File received to server. \nCHECKSUM = %d\n", calculateTotalCheckSum("server.txt"));
-
-
     fclose(fp);
 }
 
@@ -274,14 +147,16 @@ int main()
 {
     long before = 0;
     long after = 0;
+    clock_t curr_time;
 
     generate_random_file();
     before = calculateTotalCheckSum("bigfile.txt");
-    printf("\nRandom file have been created. \n1st CHECKSUM = %ld\n", before);
-    printf("________________ START UDP DGRAM ________________\n");
+    // printf("\nRandom file have been created. \n1st CHECKSUM = %ld\n", before);
+    printf("\n\n________________ START UDS DGRAM ________________\n");
     printf("Starting ");
     print_time();
-    long start = ReturnTimeNs();
+    curr_time = clock();
+
     // Defining the IP and Port
     char* ip = "127.0.0.1";
     const int port = 8080;
@@ -313,7 +188,6 @@ int main()
     /**
      * Create new process and call run client from it
      */
-    // int status;
     pid_t pid;
 
     pid = fork ();
@@ -327,22 +201,20 @@ int main()
         /* The fork failed.  Report failure.  */
         printf("FORK FAILED");
     }
-    // status = -1;
 
     write_file(server_sockfd, client_addr);
     after = calculateTotalCheckSum("server.txt");
 
-    printf("[RECEIVED] File received to server. \n2nd CHECKSUM = %ld\n", after);
-    printf("[SUCCESS] Data transfer complete.\n");
-    printf("Difference between checksum is -> %ld\n", (long)(abs(after - before)));
+    // printf("[RECEIVED] File received to server. \n2nd CHECKSUM = %ld\n", after);
+    // printf("[SUCCESS] Data transfer complete.\n");
+    // printf("Difference between checksum is -> %ld\n", (long)(abs(after - before)));
     printf("Ending ");
     print_time();
-    printf("________________ END UDP DGRAM __________________\n\n");
+    curr_time = clock() - curr_time;
+    double time_taken = ((double)curr_time) / CLOCKS_PER_SEC;
+    printf("UDS Dgram time -> %f SEC\n", time_taken);
+    printf("________________ END UDS DGRAM __________________\n\n");
 
-    // long start = ReturnTimeNs();
-    // sleep(10);
-    long end = ReturnTimeNs();
-    printf("%lf\n", (double)((end - start) / 1000000000.0));
     close(server_sockfd);
     return 0;
 }
