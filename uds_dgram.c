@@ -21,7 +21,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "helper.c"
-#define SIZE 64
+#define SIZE 512
 
 
 /**
@@ -69,7 +69,6 @@ void client_run()
     // Defining variables
     int server_sockfd;
     struct sockaddr_in server_addr;
-    // generate_random_file();
     char *filename = "bigfile.txt";
     FILE *fp = fopen(filename, "r");
 
@@ -125,7 +124,7 @@ void write_file(int sockfd, struct sockaddr_in addr)
         addr_size = sizeof(addr);
         n = recvfrom(sockfd, buffer, SIZE, 0, (struct sockaddr*)&addr, &addr_size);
 
-        data+=n;
+        data += n;
 
         if (strcmp(buffer, "END") == 0)
         {
@@ -152,7 +151,7 @@ int main()
     generate_random_file();
     before = calculateTotalCheckSum("bigfile.txt");
     // printf("\nRandom file have been created. \n1st CHECKSUM = %ld\n", before);
-    printf("\n\n________________ START UDS DGRAM ________________\n");
+    printf("\n________________ START UDS DGRAM ___________________\n");
     printf("Starting ");
     print_time();
     curr_time = clock();
@@ -203,17 +202,25 @@ int main()
     }
 
     write_file(server_sockfd, client_addr);
-    after = calculateTotalCheckSum("server.txt");
+    after = calculateTotalCheckSum("bigfile.txt");
 
     // printf("[RECEIVED] File received to server. \n2nd CHECKSUM = %ld\n", after);
     // printf("[SUCCESS] Data transfer complete.\n");
     // printf("Difference between checksum is -> %ld\n", (long)(abs(after - before)));
     printf("Ending ");
     print_time();
+    if (after == before)
+    {
     curr_time = clock() - curr_time;
     double time_taken = ((double)curr_time) / CLOCKS_PER_SEC;
     printf("UDS Dgram time -> %f SEC\n", time_taken);
-    printf("________________ END UDS DGRAM __________________\n\n");
+    }
+    else
+    {
+        printf("The checksums are not the same -1\n");
+        printf("before-> %ld, after-> %ld -- DIFF-> %ld\n", before, after, (long)(after - before));
+    }
+    printf("________________ END UDS DGRAM ___________________\n\n");
 
     close(server_sockfd);
     return 0;

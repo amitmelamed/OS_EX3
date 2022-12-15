@@ -1,13 +1,16 @@
 CC=gcc
 FLAGS= -Wall -g
 
-# all: dgram stream tcp udp pipe mmap shared
-all: dgram stream pipe
+all: dgram stream tcp udp pipe mmap shared
 
 run: all
+	./shared
+	./mmap
+	./pipe
 	./dgram
 	./stream
-	./pipe
+	./tcp
+	./udp
 
 
 # UDS-Dgram socket
@@ -69,7 +72,7 @@ shared_memory.o: shared_memory.c
 	$(CC) $(FLAGS) -c shared_memory.c
 
 shared: shared_memory.o
-	$(CC) $(FLAGS) -o shared_memory shared_memory.o
+	$(CC) $(FLAGS) -o shared shared_memory.o
 # _______________________________________
 
 

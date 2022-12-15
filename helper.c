@@ -14,7 +14,7 @@
 
 // 100000000
 #define FILE_SIZE 100000000
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 128
 
 
 
@@ -32,14 +32,14 @@ char* print_time()
 
 
 /**
- * Function to generate "client.txt" file.
+ * Function to generate "bigfile.txt" file.
  * this file size is 100MB and full of random bits.
  */
 void generate_random_file()
 {
     // yes this is a test file abcdefghijklmnopqrstuvwxyz | head -c 100MB > bigfile.txt
     // found this command in: https://www.computernetworkingnotes.com/linux-tutorials/generate-or-create-a-large-text-file-in-linux.html
-    char str[512] = "yes this is a test file abcdefghijklmnopqrstuvwxyz | head -c 100MB > bigfile.txt";
+    char str[512] = "yes a1b2c3d4e5 | head -c 100MB > bigfile.txt";
     if (system(str) != 0)
     {
         printf("ERROR creating file!\n");;
@@ -47,17 +47,21 @@ void generate_random_file()
 }
 
 
-int calculateCheckSum(char *data) 
+long calculateCheckSum(char *data) 
 {
-    int sum = 0;
+    long sum = 0;
     int length = strlen(data);
     for (int i = 0; i < length; i++)
+    {
+        if (data[i] == '\n' || data[i] == '\t' || data[i] == ' ' || data[i] == 32 || data[i] == 9 || data[i] == 11 || data[i] == 10 || data[i] == 12 || data[i] == 8)
+            continue;
         sum += data[i];
+    }
     return sum;
 }
 
 
-int calculateTotalCheckSum(char * file)
+long calculateTotalCheckSum(char * file)
 {    
     int first = open(file, O_RDONLY);
     if(first == -1)
@@ -66,7 +70,8 @@ int calculateTotalCheckSum(char * file)
         return -1;
     }
     char data[1000];
-    int bytesRead, sum = 0; 
+    int bytesRead;
+    long sum = 0; 
     while(1)
     {
         bzero(data, 1000);
